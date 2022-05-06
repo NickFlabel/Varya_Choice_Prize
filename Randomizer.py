@@ -19,36 +19,7 @@ def _random_choice(lst_guests, lst_prizes):
         pass
 
 
-def _delete_from_lists(winner, lst_guests, lst_prizes):
-    """This function takes the tuple containing the winner and prize and deletes it from the corresponding lists
-
-    winner: tuple (tuple consisting of a winner and a prize)
-    lst_guests: list
-    lst_prizes: list
-    """
-    if winner:
-        lst_guests.remove(winner[0])
-        lst_prizes.remove(winner[1])
-    else:
-        pass
-
-
-def _appending_dictionary(winner, winners):
-    """This function makes a new key-value pair in the given dictionary
-
-    winner: tuple
-    winners: dict
-
-    return: dict
-    """
-    if winner:
-        winners[winner[0]] = winner[1]
-        return winners
-    else:
-        pass
-
-
-def randomizer_main(lst_guests, lst_prizes, winners):
+def randomizer_main(lst_guests, lst_prizes):
     """This function takes two lists and dictionary and makes a new key-value pair in the given dictionary
 
     lst_guests: list
@@ -58,9 +29,7 @@ def randomizer_main(lst_guests, lst_prizes, winners):
     return: dict, tuple
     """
     winner = _random_choice(lst_guests, lst_prizes)
-    _delete_from_lists(winner, lst_guests, lst_prizes)
-    winners = _appending_dictionary(winner, winners)
-    return winners, winner
+    return winner
 
 
 def test():
