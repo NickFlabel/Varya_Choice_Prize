@@ -1,208 +1,185 @@
 import sqlite3
-import tkinter
-from Randomizer import *
 
 
-# Create a database
+def database_decorator(func):
+    """This decorator opens, closes a connection to the database and commits the changes
+    """
 
-def create_database_or_connect():
+    def wrapper(*args, **kwargs):
+        conn = sqlite3.connect('data.db')
+        control = conn.cursor()
+        # Enable foreign keys
+        control.execute('PRAGMA foreign_keys = ON;')
+        result = func(*args, **kwargs, control=control)
+        conn.commit()
+        conn.close()
+        return result
+
+    return wrapper
+
+
+@database_decorator
+def create_database_or_connect(control):
     '''This function checks if database is present or not
     '''
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
-    try:
-        control.execute('''SELECT * FROM guests''')
-    except sqlite3.OperationalError:
-        control.execute('''CREATE TABLE guests (
-        name text
+    # Create tables if they do not exist
+
+    control.execute('''CREATE TABLE IF NOT EXISTS guests (
+        guest_oid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        name TEXT
         )''')
-    try:
-        control.execute('''SELECT * FROM prizes''')
-    except sqlite3.OperationalError:
-        control.execute('''CREATE TABLE prizes (
-        name text
+
+    control.execute('''CREATE TABLE IF NOT EXISTS prizes (
+        prize_oid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        name TEXT
         )''')
-    try:
-        control.execute('''SELECT * FROM winners''')
-    except sqlite3.OperationalError:
-        control.execute('''CREATE TABLE winners (
-        guest_id INTEGER NOT NULL REFERENCES guests(id),
-        prize_id INTEGER NOT NULL REFERENCES prize(id),
-        UNIQUE (guest_id, prize_id) ON CONFLICT ABORT
+
+    control.execute('''CREATE TABLE IF NOT EXISTS winners (
+        guest_oid INTEGER NOT NULL,
+        prize_oid INTEGER NOT NULL,
+        UNIQUE (guest_oid, prize_oid) ON CONFLICT IGNORE,
+        FOREIGN KEY(guest_oid) REFERENCES guests(guest_oid) ON DELETE CASCADE,
+        FOREIGN KEY(prize_oid) REFERENCES prizes(prize_oid) ON DELETE CASCADE
         )''')
-    conn.commit()
-    conn.close()
 
 
-def new_entry_guests(entry):
+@database_decorator
+def new_entry_guests(entry, control):
     """This function makes a new database entry in guests table
 
     entry: str
     """
-    conn = sqlite3.connect('data.db')
-
-    control = conn.cursor()
-
-    control.execute("""INSERT INTO guests VALUES (:name)""",
-                    {'name': entry}
+    control.execute("""INSERT INTO guests VALUES (:guest_oid, :name)""",
+                    {'guest_oid': None, 'name': entry}
                     )
-    conn.commit()
-    conn.close()
 
 
-def new_entry_prizes(entry):
+@database_decorator
+def new_entry_prizes(entry, control):
     """This function makes a new database entry in guests table
 
     entry: str
     """
-    conn = sqlite3.connect('data.db')
 
-    control = conn.cursor()
-
-    control.execute("""INSERT INTO prizes VALUES (:name)""",
-                    {'name': entry}
+    control.execute("""INSERT INTO prizes VALUES (:prize_oid, :name)""",
+                    {'prize_oid': None, 'name': entry}
                     )
-    conn.commit()
-    conn.close()
 
 
-def new_entry_winners(entry):
+@database_decorator
+def new_entry_winners(entry, control):
     """This function makes a new database entry in guests table
 
     entry: tuple
     """
-    conn = sqlite3.connect('data.db')
 
-    control = conn.cursor()
+    pk_of_winner = entry[0][0]
+    pk_of_prize = entry[1][0]
 
-    name_of_winner = "'" + str(entry[0]) + "'"
-    name_of_prize = "'" + str(entry[1]) + "'"
-
-    guest_id_query = control.execute("SELECT oid FROM guests WHERE name = " + name_of_winner)
-    guest_id = guest_id_query.fetchall()
-
-    prize_id_query = control.execute("SELECT oid FROM prizes WHERE name = " + name_of_prize)
-    prize_id = prize_id_query.fetchall()
-
-    control.execute("""INSERT INTO winners VALUES (:guest_id, :prize_id)""",
+    control.execute("INSERT INTO winners VALUES (:guest_oid, :prize_oid)",
                     {
-                        'guest_id': int(guest_id[0][0]),
-                        'prize_id': int(prize_id[0][0])
+                        'guest_oid': pk_of_winner,
+                        'prize_oid': pk_of_prize
                     }
                     )
-    conn.commit()
-    conn.close()
 
 
-def show_guests():
+@database_decorator
+def show_guests(control):
     """This function selects all guests from a database and returns a list
     """
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
-    control.execute("""SELECT name, oid FROM guests""")
+
+    control.execute("""SELECT name, guest_oid FROM guests""")
     guests = control.fetchall()
-    conn.commit()
-    conn.close()
     return guests
 
 
-def show_prizes():
+@database_decorator
+def show_prizes(control):
     """This function selects all prizes from a database and returns a list
     """
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
-    control.execute("""SELECT name, oid FROM prizes""")
+    control.execute("""SELECT name, prize_oid FROM prizes""")
     prizes = control.fetchall()
-    conn.commit()
-    conn.close()
     return prizes
 
 
-def show_winners():
+@database_decorator
+def show_winners(control):
     """This function selects all winners from a database and returns a list
+
+    return: list of tuples of winners (winner_name, winner_prize)
     """
     list_of_winners = []
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
     control.execute("""SELECT * FROM winners""")
     list_of_winners_id = control.fetchall()
     for winner in list_of_winners_id:
-        control.execute("SELECT name FROM guests WHERE oid=" + str(winner[0]))
+        control.execute("SELECT name FROM guests WHERE guest_oid=" + str(winner[0]))
         name = control.fetchall()
-        control.execute("SELECT name FROM prizes WHERE oid=" + str(winner[1]))
+        control.execute("SELECT name FROM prizes WHERE prize_oid=" + str(winner[1]))
         prize = control.fetchall()
         list_of_winners.append((name, prize))
     return list_of_winners
 
 
-def delete_record_guest(pk):
+@database_decorator
+def delete_record_guest(pk, control):
     """This function deletes a record from a guests table
 
     pk: int - primary key of a table enrty
     """
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
-    control.execute("DELETE FROM guests WHERE oid=" + str(pk))
-    conn.commit()
-    conn.close()
+    control.execute("DELETE FROM guests WHERE guest_oid=" + str(pk))
 
 
-def delete_record_prize(pk):
+@database_decorator
+def delete_record_prize(pk, control):
     """This function deletes a record from a prizes table
 
     pk: int - primary key of a table entry
     """
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
-    control.execute("DELETE FROM prizes WHERE oid=" + str(pk))
-    conn.commit()
-    conn.close()
+    control.execute("DELETE FROM prizes WHERE prize_oid=" + str(pk))
 
 
-def winners_clear():
+@database_decorator
+def winners_clear(control):
     """This function deletes all winners entries
     """
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
     control.execute('DELETE FROM winners')
-    conn.commit()
-    conn.close()
 
 
-def select_guests_who_did_non_win():
+@database_decorator
+def select_guests_who_did_non_win(control):
     """This function selects guests who did not win
+
+    return: list of all the guests who did not get the prize
     """
     loosers = []
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
-    control.execute('SELECT oid, name FROM guests')
+    control.execute('SELECT guest_oid, name FROM guests')
     guest_list = control.fetchall()
-    control.execute('SELECT guest_id FROM winners')
+    control.execute('SELECT guest_oid FROM winners')
     winners_list = control.fetchall()
-    print(winners_list)
-    print(guest_list)
     if winners_list:
         for guest in guest_list:
             for winner in winners_list:
                 if guest[0] == winner[0]:
                     break
             else:
-                loosers.append(guest[1])
+                loosers.append(guest)
     else:
         for guest in guest_list:
-            loosers.append(guest[1])
+            loosers.append(guest)
     return loosers
 
 
-def select_prizes_who_did_non_win():
+@database_decorator
+def select_prizes_who_did_non_win(control):
     """This function selects guests who did not win
+
+    return: list of all the prizes which were not distributed
     """
     masterless_prizes = []
-    conn = sqlite3.connect('data.db')
-    control = conn.cursor()
-    control.execute('SELECT oid, name FROM prizes')
+    control.execute('SELECT prize_oid, name FROM prizes')
     prize_list = control.fetchall()
-    control.execute('SELECT prize_id FROM winners')
+    control.execute('SELECT prize_oid FROM winners')
     winners_list = control.fetchall()
     if winners_list:
         for prize in prize_list:
@@ -210,9 +187,8 @@ def select_prizes_who_did_non_win():
                 if prize[0] == winner[0]:
                     break
             else:
-                masterless_prizes.append(prize[1])
+                masterless_prizes.append(prize)
     else:
         for prize in prize_list:
-            masterless_prizes.append(prize[1])
-    print(masterless_prizes)
+            masterless_prizes.append(prize)
     return masterless_prizes
