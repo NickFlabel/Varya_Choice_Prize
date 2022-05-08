@@ -10,6 +10,7 @@ def database_decorator(func):
         control = conn.cursor()
         # Enable foreign keys
         control.execute('PRAGMA foreign_keys = ON;')
+        # Execute SQL command
         result = func(*args, **kwargs, control=control)
         conn.commit()
         conn.close()
@@ -20,8 +21,8 @@ def database_decorator(func):
 
 @database_decorator
 def create_database_or_connect(control):
-    '''This function checks if database is present or not
-    '''
+    """This function checks if database is present or not
+    """
     # Create tables if they do not exist
 
     control.execute('''CREATE TABLE IF NOT EXISTS guests (
