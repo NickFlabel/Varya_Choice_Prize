@@ -25,16 +25,29 @@ def create_database_or_connect(control):
     """
     # Create tables if they do not exist
 
+    # Create money ranges table
+    control.execute('''CREATE TABLE IF NOT EXISTS ranges (
+        range_oid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        money_range TEXT UNIQUE ON CONFLICT IGNORE
+        )''')
+
+    # Create guests table
     control.execute('''CREATE TABLE IF NOT EXISTS guests (
         guest_oid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        name TEXT
+        name TEXT,
+        range_oid INTEGER NOT NULL,
+        FOREIGN KEY(range_oid) REFERENCES ranges(range_oid) ON DELETE CASCADE
         )''')
 
+    # Create prizes table
     control.execute('''CREATE TABLE IF NOT EXISTS prizes (
         prize_oid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        name TEXT
+        name TEXT,
+        range_oid INTEGER NOT NULL,
+        FOREIGN KEY(range_oid) REFERENCES ranges(range_oid) ON DELETE CASCADE
         )''')
 
+    # Create winners table
     control.execute('''CREATE TABLE IF NOT EXISTS winners (
         guest_oid INTEGER NOT NULL,
         prize_oid INTEGER NOT NULL,
@@ -45,25 +58,38 @@ def create_database_or_connect(control):
 
 
 @database_decorator
-def new_entry_guests(entry, control):
-    """This function makes a new database entry in guests table
+def new_entry_ranges(entry, control):
+    """This function makes a new database entry in ranges table
 
     entry: str
     """
-    control.execute("""INSERT INTO guests VALUES (:guest_oid, :name)""",
-                    {'guest_oid': None, 'name': entry}
+    control.execute("""INSERT INTO ranges VALUES (:range_oid, :money_range)""",
+                    {'range_oid': None, 'money_range': entry}
                     )
 
 
 @database_decorator
-def new_entry_prizes(entry, control):
+def new_entry_guests(entry, rng, control):
     """This function makes a new database entry in guests table
 
-    entry: str
+    entry: str - the name of the guest
+    rng: int - pk of the corresponding money range of the guest
+    """
+    control.execute("""INSERT INTO guests VALUES (:guest_oid, :name, :range_oid)""",
+                    {'guest_oid': None, 'name': entry, 'range_oid': rng}
+                    )
+
+
+@database_decorator
+def new_entry_prizes(entry, rng, control):
+    """This function makes a new database entry in guests table
+
+    entry: str - the name of the prize
+    rng: int - pk of the corresponding money range of the guest
     """
 
-    control.execute("""INSERT INTO prizes VALUES (:prize_oid, :name)""",
-                    {'prize_oid': None, 'name': entry}
+    control.execute("""INSERT INTO prizes VALUES (:prize_oid, :name, :range_oid)""",
+                    {'prize_oid': None, 'name': entry, 'range_oid': rng}
                     )
 
 
@@ -71,7 +97,7 @@ def new_entry_prizes(entry, control):
 def new_entry_winners(entry, control):
     """This function makes a new database entry in guests table
 
-    entry: tuple
+    entry: tuple -
     """
 
     pk_of_winner = entry[0][0]
@@ -86,20 +112,40 @@ def new_entry_winners(entry, control):
 
 
 @database_decorator
-def show_guests(control):
-    """This function selects all guests from a database and returns a list
+def show_ranges(control):
+    """This function selects all ranges from a database and returns a list
+
+    return: list of tuples: [(range_oid, money_range),]
     """
 
-    control.execute("""SELECT name, guest_oid FROM guests""")
+    control.execute("""SELECT * FROM ranges""")
+    ranges = control.fetchall()
+    return ranges
+
+
+@database_decorator
+def show_guests(range_oid, control):
+    """This function selects all guests from a database and returns a list
+
+    range_oid: int - pk of range
+
+    return: list of tuples -  [(guest_oid, name),(...),]
+    """
+
+    control.execute("""SELECT * FROM guests WHERE range_oid=""" + str(range_oid))
     guests = control.fetchall()
     return guests
 
 
 @database_decorator
-def show_prizes(control):
+def show_prizes(range_oid, control):
     """This function selects all prizes from a database and returns a list
+
+    range_oid: int - pk of range
+
+    return: list of tuples: [(guest_oid, name],(...),)
     """
-    control.execute("""SELECT name, prize_oid FROM prizes""")
+    control.execute("""SELECT * FROM prizes WHERE range_oid=""" + str(range_oid))
     prizes = control.fetchall()
     return prizes
 
@@ -108,7 +154,7 @@ def show_prizes(control):
 def show_winners(control):
     """This function selects all winners from a database and returns a list
 
-    return: list of tuples of winners (winner_name, winner_prize)
+    return: list of tuples of winners: [(winner_name, winner_prize),(...),]
     """
     list_of_winners = []
     control.execute("""SELECT * FROM winners""")
@@ -123,10 +169,19 @@ def show_winners(control):
 
 
 @database_decorator
+def delete_record_range(pk, control):
+    """This function deletes a record from a ranges table
+
+    pk: int - primary key of a table entry
+    """
+    control.execute("DELETE FROM ranges WHERE range_oid=" + str(pk))
+
+
+@database_decorator
 def delete_record_guest(pk, control):
     """This function deletes a record from a guests table
 
-    pk: int - primary key of a table enrty
+    pk: int - primary key of a table entry
     """
     control.execute("DELETE FROM guests WHERE guest_oid=" + str(pk))
 
@@ -147,6 +202,7 @@ def winners_clear(control):
     control.execute('DELETE FROM winners')
 
 
+# Obsolete
 @database_decorator
 def select_guests_who_did_non_win(control):
     """This function selects guests who did not win
