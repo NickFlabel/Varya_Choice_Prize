@@ -100,8 +100,8 @@ def new_entry_winners(entry, control):
     entry: tuple -
     """
 
-    pk_of_winner = entry[0][0]
-    pk_of_prize = entry[1][0]
+    pk_of_winner = entry[0]
+    pk_of_prize = entry[1]
 
     control.execute("INSERT INTO winners VALUES (:guest_oid, :prize_oid)",
                     {
@@ -169,6 +169,20 @@ def show_winners(control):
 
 
 @database_decorator
+def show_all_guests(control):
+    """This function selects all guests from a database and returns a list
+
+    range_oid: int - pk of range
+
+    return: list of tuples -  [(guest_oid, name),(...),]
+    """
+
+    control.execute('SELECT * FROM guests')
+    guests = control.fetchall()
+    return guests
+
+
+@database_decorator
 def delete_record_range(pk, control):
     """This function deletes a record from a ranges table
 
@@ -202,50 +216,27 @@ def winners_clear(control):
     control.execute('DELETE FROM winners')
 
 
-# Obsolete
 @database_decorator
-def select_guests_who_did_non_win(control):
-    """This function selects guests who did not win
+def is_guest_the_winner(pk, control):
+    """This function checks if the guest is in winners list
 
-    return: list of all the guests who did not get the prize
+    return: bool
     """
-    loosers = []
-    control.execute('SELECT guest_oid, name FROM guests')
-    guest_list = control.fetchall()
-    control.execute('SELECT guest_oid FROM winners')
-    winners_list = control.fetchall()
-    if winners_list:
-        for guest in guest_list:
-            for winner in winners_list:
-                if guest[0] == winner[0]:
-                    break
-            else:
-                loosers.append(guest)
-    else:
-        for guest in guest_list:
-            loosers.append(guest)
-    return loosers
+    control.execute('SELECT * FROM winners WHERE guest_oid='+str(pk))
+    winner = control.fetchall()
+    if winner:
+        return True
 
 
 @database_decorator
-def select_prizes_who_did_non_win(control):
-    """This function selects guests who did not win
+def is_there_prizes_for_guest(pk, control):
+    """This function checks if there are any prizes for the given guest
 
     return: list of all the prizes which were not distributed
     """
-    masterless_prizes = []
-    control.execute('SELECT prize_oid, name FROM prizes')
+    control.execute('SELECT * FROM guests WHERE guest_oid='+str(pk))
+    guest = control.fetchall()
+    control.execute('SELECT * FROM prizes WHERE range_oid='+str(guest[0][2]))
     prize_list = control.fetchall()
-    control.execute('SELECT prize_oid FROM winners')
-    winners_list = control.fetchall()
-    if winners_list:
-        for prize in prize_list:
-            for winner in winners_list:
-                if prize[0] == winner[0]:
-                    break
-            else:
-                masterless_prizes.append(prize)
-    else:
-        for prize in prize_list:
-            masterless_prizes.append(prize)
-    return masterless_prizes
+    if prize_list:
+        return prize_list

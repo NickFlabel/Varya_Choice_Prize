@@ -164,6 +164,10 @@ class DataWindow:
                 for number_r, rng in enumerate(ranges):
                     rng_row = rng_row + number_max + 1
                     tkinter.Label(self.window, text='Range ' + rng[1]).grid(row=rng_row, column=0, columnspan=4)
+                    tkinter.Button(self.window, text='Delete',
+                                   command=lambda range_button=rng: self.delete_range(range_button[0])).grid(
+                        row=rng_row, column=5
+                    )
                     # Show all guests in the range in question
                     guests = show_guests(rng[0])
                     if guests:
@@ -172,7 +176,7 @@ class DataWindow:
                             tkinter.Label(self.window, text=guest[1]).grid(row=rng_row + number_g + 1, column=0)
                             # Delete button
                             tkinter.Button(self.window, text='Delete',
-                                           command=lambda: self.delete_guest(guest[0])).grid(
+                                           command=lambda guest_button=guest: self.delete_guest(guest_button[0])).grid(
                                 row=rng_row + number_g + 1, column=1
                             )
                     # Show all the prizes
@@ -183,7 +187,7 @@ class DataWindow:
                             tkinter.Label(self.window, text=prize[1]).grid(row=rng_row + number_p + 1, column=3)
                             # Delete button
                             tkinter.Button(self.window, text='Delete',
-                                           command=lambda: self.delete_prize(prize[0])).grid(
+                                           command=lambda prize_button=prize: self.delete_prize(prize_button[0])).grid(
                                 row=rng_row + number_p + 1, column=4
                             )
 
@@ -197,6 +201,14 @@ class DataWindow:
             tkinter.Button(self.window, text='Add New Entry', command=lambda: entry_window(self)).grid(row=0, column=5)
 
         return wrapper
+
+    @refresh_data_window
+    def delete_range(self, ok, *args, **kwargs):
+        """This function deletes a range entry and refreshes a window
+        """
+        delete_record_range(pk)
+
+
 
     @refresh_data_window
     def delete_guest(self, pk, *args, **kwargs):
@@ -219,105 +231,126 @@ class DataWindow:
         self.refresh()
 
 
-# Main window containing the means to control the app
-
-def winners_window():
-    """This function opens a new window containing the list of winners and their prizes
+class WinnersWindow:
+    """This class opens a new window containing the list of winners and their prizes
     """
 
     def refresh_winners_window(func):
-        def wrapper(*args, window, **kwargs):
-            for widget in window.winfo_children():
+        """This decorator method renews the winner window
+        """
+
+        def wrapper(self, *args, **kwargs):
+            for widget in self.window.winfo_children():
                 widget.destroy()
-            func(*args, **kwargs)
+            func(self, *args, **kwargs)
             winners = show_winners()
             if winners:
                 for number_w, winner in enumerate(winners):
-                    tkinter.Label(window, text=winner[0]).grid(row=number_w + 2, column=0)
-                    tkinter.Label(window, text=winner[1]).grid(row=number_w + 2, column=2)
-                tkinter.Button(window, text='Delete all winners', command=lambda: delete_winners(window=window)).grid(
+                    tkinter.Label(self.window, text=winner[0]).grid(row=number_w + 2, column=0)
+                    tkinter.Label(self.window, text=winner[1]).grid(row=number_w + 2, column=2)
+                tkinter.Button(self.window, text='Delete all winners', command=lambda: self.delete_winners()).grid(
                     row=number_w + 3,
                     column=0,
                     columnspan=3)
             else:
-                tkinter.Label(window, text='There are no winners yet!').pack()
+                tkinter.Label(self.window, text='There are no winners yet!').pack()
 
         return wrapper
 
     @refresh_winners_window
-    def delete_winners():
+    def delete_winners(self, *args, **kwargs):
         """This function deletes all winners
         """
         winners_clear()
 
     @refresh_winners_window
-    def new_window_data_window():
+    def new_window_data_window(self, *args, **kwargs):
         """This function fills the new window
         """
         pass
 
     # Initialize the winners window
-    window_winners = tkinter.Toplevel()
-    new_window_data_window(window=window_winners)
+    def __call__(self):
+        self.window = tkinter.Toplevel()
+        self.new_window_data_window()
 
 
-# Create a window
-
-
-def refresh_main_window(func):
-    """This decorator fills the main window
+class RandomDrawingWindow:
+    """This window shows all the guests eligible for prizes and lists them with the winning button
     """
 
-    def wrapper(*args, window, **kwargs):
-        for widget in window.winfo_children():
-            widget.destroy()
-        func(*args, window, **kwargs)
-        tkinter.Button(text='Guest/Prize database', command=data_window).grid(row=0, column=0)
-        tkinter.Button(text='Determine the winner!', command=lambda: get_winner(window=window)).grid(row=0, column=2)
-        tkinter.Button(text='Show winners', command=winners_window).grid(row=0, column=3)
+    def refresh_random_drawing_window(func):
+        def wrapper(self, *args, **kwargs):
+            for widget in self.window.winfo_children():
+                widget.destroy()
 
-    return wrapper
+            func(self, *args, **kwargs)
+
+            guests = show_all_guests()
+
+            for number_g, guest in enumerate(guests):
+                tkinter.Label(self.window, text=guest[1]).grid(row=number_g+1, column=0)
+                draw_button = tkinter.Button(self.window)
+                if is_guest_the_winner(guest[0]):
+                    draw_button.config(text='This guest have already won his prize', state=tkinter.DISABLED)
+                elif not is_there_prizes_for_guest(guest[0]):
+                    draw_button.config(text='There are no prizes for this guest in his range. Create some first!', state=tkinter.DISABLED)
+                else:
+                    draw_button.config(text='Click the button to determine your prize!', command=lambda guest=guest: self.determine_winner(guest))
+                draw_button.grid(row=number_g+1, column=1)
+
+        return wrapper
+
+    @refresh_random_drawing_window
+    def determine_winner(self, guest):
+        prize_list = is_there_prizes_for_guest(guest[0])
+        prize_for_guest = randomizer_main(prize_list)
+        new_winner = (guest[0], prize_for_guest[0])
+        new_entry_winners(new_winner)
+        cong_window = tkinter.Toplevel()
+        tkinter.Label(cong_window, text=('Congratulations, '+guest[1]+' for you have won the great prize of '+prize_for_guest[1]+'!!!')).pack()
+
+    @refresh_random_drawing_window
+    def new_window_drawing_window(self, *args, **kwargs):
+        pass
+
+    def __call__(self):
+        self.window = tkinter.Toplevel()
+        self.new_window_drawing_window()
 
 
-@refresh_main_window
-def get_winner(window):
-    """This function determines the winner and adds him into the database
+class MainWindow:
+    """This is the main window
     """
-    # Get the list of guests
-    guest_list = []
-    guest_query = select_guests_who_did_non_win()
-    for guest in guest_query:
-        guest_list.append(guest)
 
-    # Get the list of prizes
-    prize_list = []
-    prize_query = select_prizes_who_did_non_win()
-    for prize in prize_query:
-        prize_list.append(prize)
+    def refresh_main_window(func):
+        """This decorator fills the main window
+        """
 
-    # Determine a winner
-    if guest_list and prize_list:
-        winner = randomizer_main(guest_list, prize_list)
-        new_entry_winners(winner)
-        # Show the winner
-        tkinter.Label(window, text=('The winner is ' + str(winner[0][1]) + '. He won the ' + str(winner[1][1]))).grid(
-            row=1,
-            column=2)
-    # Show alert message if there is no unique pairs of guests and prizes left
-    else:
-        tkinter.Label(window, text='There is no prizes or guests left :(').grid(row=1, column=2)
+        def wrapper(self, *args, **kwargs):
+            for widget in self.window.winfo_children():
+                widget.destroy()
+            func(self, *args, **kwargs)
+            tkinter.Button(text='Guest/Prize database', command=data_window).grid(row=0, column=0)
+            tkinter.Button(text='Determine the winners!', command=random_drawing_window).grid(row=0, column=2)
+            tkinter.Button(text='Show winners', command=winners_window).grid(row=0, column=3)
 
+        return wrapper
 
-@refresh_main_window
-def new_window(*args, **kwargs):
-    """This function fills the main window
-    """
-    pass
+    @refresh_main_window
+    def new(self):
+        pass
+
+    def __call__(self):
+        self.window = tkinter.Tk()
+        self.window.title('Guests and Prizes')
+        self.window.geometry('600x400')
+        self.new()
 
 
+random_drawing_window = RandomDrawingWindow()
+winners_window = WinnersWindow()
 entry_window = AddEntryWindow()
 data_window = DataWindow()
-root = tkinter.Tk()
-root.title('Prizes for Guests')
-root.geometry('600x400')
-new_window(window=root)
+main_window = MainWindow()
+main_window()
