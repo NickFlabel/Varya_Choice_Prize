@@ -20,7 +20,7 @@ def database_decorator(func):
 
 
 @database_decorator
-def create_database_or_connect(control):
+def create_database(control):
     """This function checks if database is present or not
     """
     # Create tables if they do not exist

@@ -1,6 +1,6 @@
 import GUI
-from GUI_database_functions import create_database_or_connect
+from GUI_database_functions import create_database
 
-create_database_or_connect()
+create_database()
 
 GUI.main_window.window.mainloop()
