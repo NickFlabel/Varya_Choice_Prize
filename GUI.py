@@ -239,7 +239,7 @@ class DataWindow:
         self.refresh()
         self.window.title('Призы и диапазоны')
         self.window.resizable(height=None)
-        self.window.geometry('1600x1200')
+        self.window.geometry('1920x1080')
 
 
 class RandomDrawingWindow:
@@ -297,7 +297,7 @@ class RandomDrawingWindow:
         else:
             win_wnd = customtkinter.CTkToplevel()
             win_wnd.title('Ошибка!')
-            win_wnd.geometry('1600x1200')
+            win_wnd.geometry('1920x1080')
             font = tkinter.font.Font(family='Helvetica', size=36, weight='bold')
             customtkinter.CTkLabel(win_wnd, text=('Для этого диапазона нет призов!'), text_font=font).place(anchor='center',
                                                                                                    rely=0.5, relx=0.5,
@@ -312,7 +312,45 @@ class RandomDrawingWindow:
         self.window = customtkinter.CTkToplevel()
         self.new_window_drawing_window()
         self.window.title('Призы')
-        self.window.geometry('1600x1200')
+        self.window.geometry('1920x1080')
+
+
+class PasswordWindow:
+
+    def refresh_password_window(func):
+        def wrapper(self, *args, **kwargs):
+            for widget in self.window.winfo_children():
+                widget.destroy()
+
+            func(self, *args, **kwargs)
+
+            customtkinter.CTkLabel(self.window, text='Для изменения информации введите пароль').pack()
+            password = tkinter.StringVar()
+            psw = customtkinter.CTkEntry(self.window, textvariable=password, width=100)
+            psw.pack()
+            customtkinter.CTkButton(self.window, text='Готово', command=lambda password=password: self.submit_password(password=password.get())).pack()
+        return wrapper
+
+
+    def submit_password(self, *args, **kwargs):
+        if kwargs['password'] == '112233':
+            self.window.destroy()
+            data_window()
+        else:
+            self.wrong_password()
+
+    @refresh_password_window
+    def wrong_password(self, *args, **kwargs):
+            customtkinter.CTkLabel(self.window, text='Неверный пароль!').pack()
+
+
+    @refresh_password_window
+    def new_window(self):
+        pass
+
+    def __call__(self):
+        self.window = customtkinter.CTkToplevel()
+        self.new_window()
 
 
 class MainWindow:
@@ -327,8 +365,8 @@ class MainWindow:
             for widget in self.window.winfo_children():
                 widget.destroy()
             func(self, *args, **kwargs)
-            customtkinter.CTkButton(text='Призы и диапазоны', command=data_window, width=200, height=50).place(anchor='nw', x=10, y=10)
-            customtkinter.CTkButton(text='Определение призов', command=random_drawing_window, width=200, height=50).place(anchor='center', rely=0.5, relx=0.5)
+            customtkinter.CTkButton(text='Призы и диапазоны', command=password_window, width=400, height=100).place(anchor='center', relx=0.5, rely=0.5)
+            customtkinter.CTkButton(text='Определение призов', command=random_drawing_window, width=400, height=100).place(anchor='center', relx=0.5, rely=0.2)
 
         return wrapper
 
@@ -339,11 +377,12 @@ class MainWindow:
     def __call__(self):
         self.window = customtkinter.CTk()
         self.window.title('Призы')
-        self.window.geometry('600x400')
+        self.window.geometry('1920x1080')
         self.new()
 
 
 random_drawing_window = RandomDrawingWindow()
+password_window = PasswordWindow()
 entry_window = AddEntryWindow()
 data_window = DataWindow()
 main_window = MainWindow()
