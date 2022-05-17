@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 from GUI_database_functions import *
 import customtkinter
 
-customtkinter.set_appearance_mode("System")
+customtkinter.set_appearance_mode("Light")
 customtkinter.set_default_color_theme("blue")
 
 
@@ -17,7 +17,7 @@ class AddEntryWindow:
         """This decorator method refreshes the window
         """
 
-        def wrapper(self, *args, option='Select what you would like to add', **kwargs):
+        def wrapper(self, *args, option='Выберите, что вы хотите добавить', **kwargs):
             for widget in self.window.winfo_children():
                 widget.destroy()
 
@@ -25,7 +25,7 @@ class AddEntryWindow:
 
             clicked = tkinter.StringVar()
             clicked.set(option)
-            menu = tkinter.OptionMenu(self.window, clicked, "Range", "Prize",
+            menu = tkinter.OptionMenu(self.window, clicked, "Диапазон", "Приз",
                                command=lambda _: self.new_entry_field(option=clicked.get(), window=self.window))
             menu.grid(
                 row=0,
@@ -96,26 +96,26 @@ class AddEntryWindow:
                 for opt in query:
                     menu_opts.append(opt[1])
             else:
-                menu_opts = ['Create ranges first!']
+                menu_opts = ['Сначала необходимо создать диапазон']
             return menu_opts
 
-        if kwargs['option'] == 'Range':
-            customtkinter.CTkLabel(self.window, text='Enter the money range of the guest/prize').grid(row=2, column=0)
+        if kwargs['option'] == 'Диапазон':
+            customtkinter.CTkLabel(self.window, text='Введите диапазон в рублях (00-00)').grid(row=2, column=0)
             range_entry = customtkinter.CTkEntry(self.window, width=200)
             range_entry.grid(row=3, column=0)
-            customtkinter.CTkButton(self.window, text='Submit',
+            customtkinter.CTkButton(self.window, text='Готово',
                            command=lambda: self.new_range(range_entry.get())).grid(
                 row=4, column=0)
 
-        elif kwargs['option'] == 'Prize':
-            customtkinter.CTkLabel(self.window, text='Enter the name of the prize').grid(row=2, column=0)
+        elif kwargs['option'] == 'Приз':
+            customtkinter.CTkLabel(self.window, text='Введите название приза').grid(row=2, column=0)
             prize_entry = customtkinter.CTkEntry(self.window, width=200)
             prize_entry.grid(row=3, column=0)
             var = tkinter.StringVar()
-            var.set('Choose a range for the prize')
+            var.set('Выберите диапазон для данного приза')
             options = show_ranges()
             menu_opts = process_query(options)
-            submit_button = customtkinter.CTkButton(self.window, text='Submit',
+            submit_button = customtkinter.CTkButton(self.window, text='Готово',
                                            command=lambda: self.new_prize(prize_entry.get(), range_pk),
                                            state=tkinter.DISABLED)
             menu = tkinter.OptionMenu(self.window, var, *menu_opts, command=lambda _: check(var, options, submit_button))
@@ -131,7 +131,9 @@ class AddEntryWindow:
     def __call__(self, parent_window):
         self.window = customtkinter.CTkToplevel()
         self.refresh()
+        self.window.title('Добавить запись')
         self.parent_window = parent_window
+
 
 
 class DataWindow:
@@ -154,12 +156,29 @@ class DataWindow:
             number_p = 0
             number_max = 0
             rng_row = 0
+            font = tkinter.font.Font(family='Helvetica', size=14, weight='bold')
+            customtkinter.CTkLabel(self.window, text='Призы и диапазоны', text_font=font).pack(side='top')
+            main_frame = customtkinter.CTkFrame(self.window)
+            main_frame.pack(fill=tkinter.BOTH, expand=1)
+
+            my_canvas = customtkinter.CTkCanvas(main_frame)
+            my_canvas.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=1)
+
+            my_scrollbar = tkinter.Scrollbar(main_frame, orient=tkinter.VERTICAL, command=my_canvas.yview)
+            my_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+
+            my_canvas.configure(yscrollcommand=my_scrollbar.set)
+            my_canvas.bind('<Configure>', lambda e: my_canvas.configure(scrollregion=my_canvas.bbox('all')))
+
+            second_frame = customtkinter.CTkFrame(my_canvas)
+
+            my_canvas.create_window((0, 0), window=second_frame, anchor='nw')
             # Show all the ranges
             if ranges:
                 for number_r, rng in enumerate(ranges):
                     rng_row = rng_row + number_max + 1
-                    customtkinter.CTkLabel(self.window, text='Range ' + rng[1]).grid(row=rng_row, column=0, columnspan=2)
-                    customtkinter.CTkButton(self.window, text='Delete Range',
+                    customtkinter.CTkLabel(second_frame, text='Диапазон ' + rng[1]).grid(row=rng_row, column=0, columnspan=2)
+                    customtkinter.CTkButton(second_frame, text='Удалить диапазон',
                                    command=lambda range_button=rng: self.delete_range(range_button[0])).grid(
                         row=rng_row, column=3
                     )
@@ -168,9 +187,9 @@ class DataWindow:
                     if prizes:
                         for number_p, prize in enumerate(prizes):
                             # Name of the prize
-                            customtkinter.CTkLabel(self.window, text=prize[1]).grid(row=rng_row + number_p + 1, column=0)
+                            customtkinter.CTkLabel(second_frame, text=prize[1]).grid(row=rng_row + number_p + 1, column=0)
                             # Delete button
-                            customtkinter.CTkButton(self.window, text='Delete Prize',
+                            customtkinter.CTkButton(second_frame, text='Удалить приз',
                                            command=lambda prize_button=prize: self.delete_prize(prize_button[0])).grid(
                                 row=rng_row + number_p + 1, column=1
                             )
@@ -179,10 +198,15 @@ class DataWindow:
                     # Make a new max row
                     number_max = max(rng_row + number_p, rng_row + number_g)
 
+
+            else:
+                customtkinter.CTkLabel(second_frame, text='В базе данных нет диапазонов или призов').grid(row=0, column=0)
             # Show data Labels
 
-            customtkinter.CTkLabel(self.window, text='Prizes and Ranges').grid(row=0, column=0, columnspan=2)
-            customtkinter.CTkButton(self.window, text='Add New Entry', command=lambda: entry_window(self)).grid(row=0, column=3)
+
+
+            customtkinter.CTkButton(self.window, text='Добавить новый приз/диапазон', text_font=font, command=lambda: entry_window(self)).pack()
+            customtkinter.CTkButton(self.window, text='Назад', text_font=font, command=self.window.destroy).pack()
 
         return wrapper
 
@@ -213,7 +237,9 @@ class DataWindow:
     def __call__(self):
         self.window = customtkinter.CTkToplevel()
         self.refresh()
-        self.window.geometry('400x400')
+        self.window.title('Призы и диапазоны')
+        self.window.resizable(height=None)
+        self.window.geometry('1600x1200')
 
 
 class RandomDrawingWindow:
@@ -221,7 +247,7 @@ class RandomDrawingWindow:
     """
 
     def refresh_random_drawing_window(func):
-        def wrapper(self, *args, option='Select your range!', **kwargs):
+        def wrapper(self, *args, option='Выберите ваш диапазон!', **kwargs):
             for widget in self.window.winfo_children():
                 widget.destroy()
 
@@ -231,17 +257,21 @@ class RandomDrawingWindow:
             helv36 = tkinter.font.Font(family='Helvetica', size=14, weight='bold')
             clicked.set(option)
             ranges = show_ranges()
-            range_list = [r[1] for r in ranges]
-            menu = tkinter.OptionMenu(self.window, clicked, *range_list, command=lambda r=clicked.get(): self.new_window_drawing_window(option=r))
-            menu.place(relx=1.0, rely=0.0, x=-600, y=20)
-            menu.config(width=50, height=2, font=helv36, bg="#5B97D3", borderwidth=0, activebackground="#4A7BAD")
-            img = tkinter.PhotoImage(file='ASD.png')
-            self.img = img.subsample(3, 3)
-            winner_button = customtkinter.CTkButton(self.window, image=self.img, compound='top', height=450, width=600, text='Determine your prize!', command=lambda r=clicked.get(): self.determine_winner(r))
-            winner_button.place(rely=0.5, relx=0.5, anchor='center')
+            if ranges:
+                range_list = [r[1] for r in ranges]
+                menu = tkinter.OptionMenu(self.window, clicked, *range_list, command=lambda r=clicked.get(): self.new_window_drawing_window(option=r))
+                menu.place(relx=1.0, rely=0.0, x=-600, y=20)
+                menu.config(width=50, height=2, font=helv36, bg="#5B97D3", borderwidth=0, activebackground="#4A7BAD")
+                img = tkinter.PhotoImage(file='ASD.png')
+                self.img = img.subsample(3, 3)
+                winner_button = customtkinter.CTkButton(self.window, image=self.img, compound='top', height=450, width=600, text='Нажмите на копку чтобы получить приз!', command=lambda r=clicked.get(): self.determine_winner(r))
+                winner_button.place(rely=0.5, relx=0.5, anchor='center')
 
-            if option == 'Select your range!':
-                winner_button.config(state=tkinter.DISABLED)
+                if option == 'Выберите ваш диапазон!':
+                    winner_button.config(state=tkinter.DISABLED)
+
+            else:
+                customtkinter.CTkLabel(self.window, text='В базе данных нет диапазонов!', text_font=helv36).pack()
 
         return wrapper
 
@@ -255,10 +285,24 @@ class RandomDrawingWindow:
 
         pk = determine_pk(r)
         prize_list = show_prizes(pk)
-        prize = choice(prize_list)
-        win_wnd = customtkinter.CTkToplevel()
-        win_wnd.geometry('400x400')
-        customtkinter.CTkLabel(win_wnd, text=('You have won '+prize[1])).place(anchor='center', rely=0.5, relx=0.5, width=400, height=50)
+        if prize_list:
+            prize = choice(prize_list)
+            win_wnd = customtkinter.CTkToplevel()
+            win_wnd.title('Ваш приз!')
+            win_wnd.geometry('1600x1200')
+            font = tkinter.font.Font(family='Helvetica', size=36, weight='bold')
+            customtkinter.CTkLabel(win_wnd, text=('Ваш приз: '+prize[1]+'!'+'\nПоздравляем!'), text_font=font).place(anchor='center', rely=0.5, relx=0.5, width=1600, height=300)
+            customtkinter.CTkButton(win_wnd, text='Назад', text_font=font, command=win_wnd.destroy).place(
+                anchor='center', relx=0.5, rely=0.8)
+        else:
+            win_wnd = customtkinter.CTkToplevel()
+            win_wnd.title('Ошибка!')
+            win_wnd.geometry('1600x1200')
+            font = tkinter.font.Font(family='Helvetica', size=36, weight='bold')
+            customtkinter.CTkLabel(win_wnd, text=('Для этого диапазона нет призов!'), text_font=font).place(anchor='center',
+                                                                                                   rely=0.5, relx=0.5,
+                                                                                                   width=1600, height=50)
+            customtkinter.CTkButton(win_wnd, text='Назад', text_font=font, command=win_wnd.destroy).place(anchor='center', relx=0.5, rely=0.8)
 
     @refresh_random_drawing_window
     def new_window_drawing_window(self, *args, **kwargs):
@@ -267,6 +311,7 @@ class RandomDrawingWindow:
     def __call__(self):
         self.window = customtkinter.CTkToplevel()
         self.new_window_drawing_window()
+        self.window.title('Призы')
         self.window.geometry('1600x1200')
 
 
@@ -282,8 +327,8 @@ class MainWindow:
             for widget in self.window.winfo_children():
                 widget.destroy()
             func(self, *args, **kwargs)
-            customtkinter.CTkButton(text='Guest/Prize database', command=data_window, width=200, height=50).place(anchor='nw', x=10, y=10)
-            customtkinter.CTkButton(text='Determine the winners!', command=random_drawing_window, width=200, height=50).place(anchor='center', rely=0.5, relx=0.5)
+            customtkinter.CTkButton(text='Призы и диапазоны', command=data_window, width=200, height=50).place(anchor='nw', x=10, y=10)
+            customtkinter.CTkButton(text='Определение призов', command=random_drawing_window, width=200, height=50).place(anchor='center', rely=0.5, relx=0.5)
 
         return wrapper
 
@@ -293,7 +338,7 @@ class MainWindow:
 
     def __call__(self):
         self.window = customtkinter.CTk()
-        self.window.title('Guests and Prizes')
+        self.window.title('Призы')
         self.window.geometry('600x400')
         self.new()
 
