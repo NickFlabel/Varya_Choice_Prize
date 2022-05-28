@@ -1,5 +1,5 @@
 import sqlite3
-
+from Randomizer import balance_prizes_to_guests
 
 def database_decorator(func):
     """This decorator opens, closes a connection to the database and commits the changes
@@ -20,7 +20,7 @@ def database_decorator(func):
 
 
 @database_decorator
-def create_database_or_connect(control):
+def create_database(control):
     """This function checks if database is present or not
     """
     # Create tables if they do not exist
@@ -36,24 +36,19 @@ def create_database_or_connect(control):
         guest_oid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         name TEXT,
         range_oid INTEGER NOT NULL,
-        FOREIGN KEY(range_oid) REFERENCES ranges(range_oid) ON DELETE CASCADE
+        guest_uid TEXT UNIQUE ON CONFLICT IGNORE,
+        won_prize_id INTEGER NULL,
+        FOREIGN KEY(range_oid) REFERENCES ranges(range_oid) ON DELETE CASCADE,
+        FOREIGN KEY(won_prize_id) REFERENCES prizes(prize_oid) ON DELETE SET NULL
         )''')
-
     # Create prizes table
     control.execute('''CREATE TABLE IF NOT EXISTS prizes (
         prize_oid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         name TEXT,
         range_oid INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        winning_text TEXT NOT NULL,
         FOREIGN KEY(range_oid) REFERENCES ranges(range_oid) ON DELETE CASCADE
-        )''')
-
-    # Create winners table
-    control.execute('''CREATE TABLE IF NOT EXISTS winners (
-        guest_oid INTEGER NOT NULL,
-        prize_oid INTEGER NOT NULL,
-        UNIQUE (guest_oid, prize_oid) ON CONFLICT IGNORE,
-        FOREIGN KEY(guest_oid) REFERENCES guests(guest_oid) ON DELETE CASCADE,
-        FOREIGN KEY(prize_oid) REFERENCES prizes(prize_oid) ON DELETE CASCADE
         )''')
 
 
@@ -69,46 +64,59 @@ def new_entry_ranges(entry, control):
 
 
 @database_decorator
-def new_entry_guests(entry, rng, control):
+def new_entry_guests(guest_name, guest_range, guest_uid, control):
     """This function makes a new database entry in guests table
 
     entry: str - the name of the guest
     rng: int - pk of the corresponding money range of the guest
+    guest_uid: str - unique text allowing for the identification of the guest during the prize distribution
     """
-    control.execute("""INSERT INTO guests VALUES (:guest_oid, :name, :range_oid)""",
-                    {'guest_oid': None, 'name': entry, 'range_oid': rng}
-                    )
+    control.execute(
+        """INSERT INTO guests (guest_oid, name, range_oid, guest_uid) VALUES (:guest_oid, :name, :range_oid, :guest_uid)""",
+        {'guest_oid': None, 'name': guest_name, 'range_oid': guest_range, 'guest_uid': guest_uid}
+    )
 
 
 @database_decorator
-def new_entry_prizes(entry, rng, control):
+def new_entry_prizes(prize_name, prize_range, prize_num, prize_text, control):
     """This function makes a new database entry in guests table
 
     entry: str - the name of the prize
     rng: int - pk of the corresponding money range of the guest
+    quantity: int - the number of available prizes of that type
+    winning_text: str - the text displayed when winning this prize
     """
 
-    control.execute("""INSERT INTO prizes VALUES (:prize_oid, :name, :range_oid)""",
-                    {'prize_oid': None, 'name': entry, 'range_oid': rng}
+    control.execute("""INSERT INTO prizes VALUES (:prize_oid, :name, :range_oid, :quantity, :winning_text)""",
+                    {'prize_oid': None, 'name': prize_name, 'range_oid': prize_range,
+                     'quantity': prize_num, 'winning_text': prize_text}
                     )
 
 
 @database_decorator
-def new_entry_winners(entry, control):
-    """This function makes a new database entry in guests table
+def show_prize(prize_oid, control):
+    """This function makes query and returns the corresponding prize data
 
-    entry: tuple -
+    prize_oid: int - the pk of the prize in question
+
+    return: tuple - (prize_oid, name, prize_range, quantity, text)
     """
+    control.execute("SELECT * FROM prizes WHERE prize_oid=" + str(prize_oid))
+    prize = control.fetchall()
+    return prize
 
-    pk_of_winner = entry[0]
-    pk_of_prize = entry[1]
 
-    control.execute("INSERT INTO winners VALUES (:guest_oid, :prize_oid)",
-                    {
-                        'guest_oid': pk_of_winner,
-                        'prize_oid': pk_of_prize
-                    }
-                    )
+@database_decorator
+def show_guest_by_uid(guest_uid, control):
+    """This function makes query and returns the corresponding prize data
+
+    guest_uid: str - unique text allowing for the identification of the guest during the prize distribution
+
+    return: tuple - (guest_oid, name, guest_range, guest_uid, prize_oid)
+    """
+    control.execute("SELECT * FROM guests WHERE guest_uid=" + str("'"+guest_uid+"'"))
+    guest = control.fetchall()
+    return guest
 
 
 @database_decorator
@@ -124,12 +132,12 @@ def show_ranges(control):
 
 
 @database_decorator
-def show_guests(range_oid, control):
+def show_guests_of_given_range(range_oid, control):
     """This function selects all guests from a database and returns a list
 
     range_oid: int - pk of range
 
-    return: list of tuples -  [(guest_oid, name),(...),]
+    return: list of tuples -  [(guest_oid, name, guest_range, guest_uid, prize_oid),(...),]
     """
 
     control.execute("""SELECT * FROM guests WHERE range_oid=""" + str(range_oid))
@@ -138,12 +146,12 @@ def show_guests(range_oid, control):
 
 
 @database_decorator
-def show_prizes(range_oid, control):
+def show_prizes_of_given_range(range_oid, control):
     """This function selects all prizes from a database and returns a list
 
     range_oid: int - pk of range
 
-    return: list of tuples: [(guest_oid, name],(...),)
+    return: list of tuples: [(prize_oid, name, prize_range, quantity, text),(...),)
     """
     control.execute("""SELECT * FROM prizes WHERE range_oid=""" + str(range_oid))
     prizes = control.fetchall()
@@ -151,35 +159,25 @@ def show_prizes(range_oid, control):
 
 
 @database_decorator
-def show_winners(control):
-    """This function selects all winners from a database and returns a list
-
-    return: list of tuples of winners: [(winner_name, winner_prize),(...),]
-    """
-    list_of_winners = []
-    control.execute("""SELECT * FROM winners""")
-    list_of_winners_id = control.fetchall()
-    for winner in list_of_winners_id:
-        control.execute("SELECT name FROM guests WHERE guest_oid=" + str(winner[0]))
-        name = control.fetchall()
-        control.execute("SELECT name FROM prizes WHERE prize_oid=" + str(winner[1]))
-        prize = control.fetchall()
-        list_of_winners.append((name, prize))
-    return list_of_winners
-
-
-@database_decorator
 def show_all_guests(control):
     """This function selects all guests from a database and returns a list
 
-    range_oid: int - pk of range
-
-    return: list of tuples -  [(guest_oid, name),(...),]
+    return: list of tuples -  [(guest_oid, name, guest_range, guest_uid, prize_oid),(...),]
     """
-
     control.execute('SELECT * FROM guests')
     guests = control.fetchall()
     return guests
+
+
+@database_decorator
+def show_all_prizes(control):
+    """This function selects all guests from a database and returns a list
+
+    return: list of tuples -  [(prize_oid, name, prize_range, quantity, text),(...),)
+    """
+    control.execute('SELECT * FROM prizes')
+    prizes = control.fetchall()
+    return prizes
 
 
 @database_decorator
@@ -210,33 +208,64 @@ def delete_record_prize(pk, control):
 
 
 @database_decorator
-def winners_clear(control):
-    """This function deletes all winners entries
-    """
-    control.execute('DELETE FROM winners')
-
-
-@database_decorator
 def is_guest_the_winner(pk, control):
     """This function checks if the guest is in winners list
 
-    return: bool
+    pk: int - guest_oid
+
+    return: False in case if there is no prize, prize_oid in case is there is one
     """
-    control.execute('SELECT * FROM winners WHERE guest_oid='+str(pk))
+    control.execute('SELECT won_prize_id FROM guests WHERE guest_oid=' + str(pk))
     winner = control.fetchall()
-    if winner:
-        return True
+    if winner[0][0]:
+        return winner[0][0]
+    else:
+        return False
 
 
 @database_decorator
-def is_there_prizes_for_guest(pk, control):
-    """This function checks if there are any prizes for the given guest
+def update_prize_guest(guest_oid, prize_oid, control):
+    """This function updates the guest entry adding a reference to the prize won
 
-    return: list of all the prizes which were not distributed
+    guest_oid: int - the pk of the guest in question
+    prize_oid: int - the pk of the prize won
     """
-    control.execute('SELECT * FROM guests WHERE guest_oid='+str(pk))
-    guest = control.fetchall()
-    control.execute('SELECT * FROM prizes WHERE range_oid='+str(guest[0][2]))
-    prize_list = control.fetchall()
-    if prize_list:
-        return prize_list
+    control.execute("UPDATE guests SET won_prize_id="+str(prize_oid)+" WHERE guest_oid="+str(guest_oid))
+
+
+@database_decorator
+def update_prize_quantity(prize_oid, control, number='-1'):
+    """This function updates the guest entry adding a reference to the prize won
+
+    prize_oid: int - the pk of the prize won
+    """
+    prize = show_prize(prize_oid)
+    if number == '-1':
+        number = int(prize[0][3]) - 1
+    control.execute("UPDATE prizes SET quantity="+str(number)+" WHERE prize_oid="+str(prize_oid))
+
+
+@database_decorator
+def clear_prizes_guests(control):
+    """This function clears all prizes won entries in guests table
+    """
+    control.execute('UPDATE guests SET won_prize_id=NULL')
+
+
+@database_decorator
+def balance_numbers_of_guests_and_prizes(control):
+    """This function proportionally balances the number of guests and prizes
+    """
+    ranges = show_ranges()
+    for range_ in ranges:
+        range_oid = range_[0]
+        guests = show_guests_of_given_range(range_oid)
+        prizes = show_prizes_of_given_range(range_oid)
+
+        num_of_guests = len(guests)
+
+        new_list = balance_prizes_to_guests(prizes, num_of_guests)
+
+        for i in range(len(prizes)):
+            prize_oid = prizes[i][0]
+            update_prize_quantity(prize_oid=prize_oid, number=new_list[i])
