@@ -1,9 +1,10 @@
 import tkinter
 import tkinter.font
 from Randomizer import *
-from PIL import Image, ImageTk
+from tkinter import ttk
 from GUI_database_functions import *
 import customtkinter
+import time
 
 customtkinter.set_appearance_mode("Light")
 customtkinter.set_default_color_theme("blue")
@@ -256,15 +257,21 @@ class DataWindow:
             second_frame = customtkinter.CTkFrame(my_canvas)
 
             my_canvas.create_window((0, 0), window=second_frame, anchor='nw')
+            # Show table
+            customtkinter.CTkLabel(second_frame, text='Название приза').grid(row=0, column=0)
+            customtkinter.CTkLabel(second_frame, text='Оставшееся количество').grid(row=0, column=1)
+            customtkinter.CTkLabel(second_frame, text='Имя гостя').grid(row=0, column=4)
+            customtkinter.CTkLabel(second_frame, text='Уникальный идентификатор гостя').grid(row=0, column=5)
+            customtkinter.CTkLabel(second_frame, text='Полученный приз').grid(row=0, column=6)
             # Show all the ranges
             if ranges:
                 for number_r, rng in enumerate(ranges):
                     rng_row = rng_row + number_max + 1
-                    customtkinter.CTkLabel(second_frame, text='Диапазон ' + rng[1]).grid(row=rng_row, column=0,
-                                                                                         columnspan=2)
+                    customtkinter.CTkLabel(second_frame, text='Диапазон ' + rng[1]).grid(row=rng_row + 1, column=0,
+                                                                                         columnspan=6)
                     customtkinter.CTkButton(second_frame, text='Удалить диапазон',
                                             command=lambda range_button=rng: self.delete_range(range_button[0])).grid(
-                        row=rng_row, column=3
+                        row=rng_row + 1, column=7
                     )
                     # Show all the prizes
                     prizes = show_prizes_of_given_range(rng[0])
@@ -272,47 +279,47 @@ class DataWindow:
                     if prizes:
                         for number_p, prize in enumerate(prizes):
                             # Name of the prize
-                            customtkinter.CTkLabel(second_frame, text=prize[1]).grid(row=rng_row + number_p + 1,
+                            customtkinter.CTkLabel(second_frame, text=prize[1]).grid(row=rng_row + number_p + 2,
                                                                                      column=0)
                             # Number of prizes of this type left
                             customtkinter.CTkLabel(second_frame, text=('Всего осталось: '+str(prize[3]))).grid(
-                                row=rng_row + number_p + 1, column=1
+                                row=rng_row + number_p + 2, column=1
                             )
 
                             # Update quantity button
                             customtkinter.CTkButton(second_frame, text='Изменить количество', command=lambda prize_oid=prize[0]: self.update_quantity(
                                 prize_oid=prize_oid
                             )).grid(
-                                row=rng_row + number_p + 1, column=2)
+                                row=rng_row + number_p + 2, column=2)
 
                             # Delete button
                             customtkinter.CTkButton(second_frame, text='Удалить приз',
                                                     command=lambda prize_button=prize: self.delete_prize(
                                                         prize_button[0])).grid(
-                                row=rng_row + number_p + 1, column=3
+                                row=rng_row + number_p + 2, column=3
                             )
                     if guests:
                         for number_g, guest in enumerate(guests):
                             # Name of the prize
-                            customtkinter.CTkLabel(second_frame, text=guest[1]).grid(row=rng_row + number_g + 1,
+                            customtkinter.CTkLabel(second_frame, text=guest[1]).grid(row=rng_row + number_g + 2,
                                                                                      column=4)
                             # Number of prizes of this type left
                             customtkinter.CTkLabel(second_frame, text=('Уникальный идентификатор: '+str(guest[3]))).grid(
-                                row=rng_row + number_g + 1, column=5
+                                row=rng_row + number_g + 2, column=5
                             )
                             # Show the prize
                             if guest[4]:
                                 customtkinter.CTkLabel(second_frame, text=show_prize(guest[4])[0][1]).grid(
-                                                       row=rng_row + number_g + 1, column=6)
+                                                       row=rng_row + number_g + 2, column=6)
                             else:
                                 customtkinter.CTkLabel(second_frame, text='Этот гость еще ничего не выграл').grid(
-                                                       row=rng_row + number_g + 1, column=6)
+                                                       row=rng_row + number_g + 2, column=6)
 
                             # Delete button
                             customtkinter.CTkButton(second_frame, text='Удалить гостя',
                                                     command=lambda guest_button=guest: self.delete_guest(
                                                         guest_button[0])).grid(
-                                                    row=rng_row + number_g + 1, column=7)
+                                                    row=rng_row + number_g + 2, column=7)
 
                     # Make a new max row
                     number_max = max(rng_row + number_p, rng_row + number_g)
@@ -326,8 +333,8 @@ class DataWindow:
                 number_of_prizes = str(number_of_prizes)
                 number_of_guests = str(len(show_all_guests()))
 
-                customtkinter.CTkLabel(second_frame, text='Количество призов: '+number_of_prizes).grid(row=final_number_max+1, column=0)
-                customtkinter.CTkLabel(second_frame, text='Количество гостей: '+number_of_guests).grid(row=final_number_max + 1,
+                customtkinter.CTkLabel(second_frame, text='Количество призов: '+number_of_prizes).grid(row=final_number_max+2, column=0)
+                customtkinter.CTkLabel(second_frame, text='Количество гостей: '+number_of_guests).grid(row=final_number_max + 2,
                                                                                                      column=1)
 
             else:
@@ -458,6 +465,13 @@ class RandomDrawingWindow:
                     new_list.append(prize)
             return new_list
 
+        def play_animation(progress_bar_widget, window):
+            for i in range(300):
+                progress_bar_widget['value'] += 0.33333
+                window.update_idletasks()
+                time.sleep(0.01)
+
+
         # show guest using guest_uid
         try:
             print(guest_uid)
@@ -481,12 +495,31 @@ class RandomDrawingWindow:
                 win_wnd.title('Ваш приз!')
                 win_wnd.geometry('1600x1200')
                 font = tkinter.font.Font(family='Helvetica', size=36, weight='bold')
+
+                # Loading animation for determining the prize
+                loading_text = customtkinter.CTkLabel(win_wnd, text="Определяем приз...")
+                loading_text.place(anchor='center', relx=0.5, rely=0.4)
+
+                loading_bar = ttk.Progressbar(win_wnd, orient='horizontal', length=400,
+                                                           mode='determinate', style='green.Horizontal.TProgressbar')
+                loading_bar.place(anchor='center', rely=0.5, relx=0.5)
+
+                play_animation(loading_bar, win_wnd)
+
+                loading_bar.destroy()
+
+                loading_text.destroy()
+
                 customtkinter.CTkLabel(win_wnd, text=('Поздравляем!'),
-                                       text_font=font).place(anchor='center', rely=0.4, relx=0.5, width=1600,
-                                                             height=300)
-                customtkinter.CTkLabel(win_wnd, text=(prize[4]),
-                                       text_font=font).place(anchor='center', rely=0.4, relx=0.5, width=1600,
-                                                             height=300)
+                                       text_font=font).place(
+                    anchor='center', rely=0.2, relx=0.5)
+
+                win_frame = tkinter.Frame(win_wnd, width=1000, height=400, bg='#f2f2f2')
+                win_frame.place(anchor='center', rely=0.5, relx=0.5)
+
+                text = customtkinter.CTkLabel(win_frame, text=prize[4], text_font=font, bg='#f2f2f2', width=1000,
+                                              height=400, wraplength=1000)
+                text.place(anchor='center', rely=0.5, relx=0.5)
                 customtkinter.CTkButton(win_wnd, text='Назад', text_font=font, command=win_wnd.destroy).place(
                     anchor='center', relx=0.5, rely=0.8)
 

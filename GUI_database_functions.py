@@ -262,10 +262,11 @@ def balance_numbers_of_guests_and_prizes(control):
         guests = show_guests_of_given_range(range_oid)
         prizes = show_prizes_of_given_range(range_oid)
 
-        num_of_guests = len(guests)
+        if prizes:
+            num_of_guests = len(guests)
 
-        new_list = balance_prizes_to_guests(prizes, num_of_guests)
+            new_list = balance_prizes_to_guests(prizes, num_of_guests)
 
-        for i in range(len(prizes)):
-            prize_oid = prizes[i][0]
-            update_prize_quantity(prize_oid=prize_oid, number=new_list[i])
+            for i in range(len(prizes)):
+                prize_oid = prizes[i][0]
+                update_prize_quantity(prize_oid=prize_oid, number=new_list[i])
