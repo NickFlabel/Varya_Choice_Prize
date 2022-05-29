@@ -114,7 +114,7 @@ def show_guest_by_uid(guest_uid, control):
 
     return: tuple - (guest_oid, name, guest_range, guest_uid, prize_oid)
     """
-    control.execute("SELECT * FROM guests WHERE guest_uid=" + str("'"+guest_uid+"'"))
+    control.execute("SELECT * FROM guests WHERE guest_uid=" + str("'"+guest_uid+"'") + ' COLLATE NOCASE')
     guest = control.fetchall()
     return guest
 
