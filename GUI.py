@@ -241,20 +241,20 @@ class DataWindow:
             number_max = 0
             rng_row = 0
             font = tkinter.font.Font(family='Helvetica', size=14, weight='bold')
-            customtkinter.CTkLabel(self.window, text='Призы и диапазоны', text_font=font).pack(side='top')
-            main_frame = customtkinter.CTkFrame(self.window)
+            customtkinter.CTkLabel(self.window, text='Призы и диапазоны', text_font=font, bg_color='#f2f2f2').pack(side='top')
+            main_frame = customtkinter.CTkFrame(self.window, bg='#f2f2f2')
             main_frame.pack(fill=tkinter.BOTH, expand=1)
 
-            my_canvas = customtkinter.CTkCanvas(main_frame)
+            my_canvas = customtkinter.CTkCanvas(main_frame, bg='#e3e3e3')
             my_canvas.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=1)
 
-            my_scrollbar = tkinter.Scrollbar(main_frame, orient=tkinter.VERTICAL, command=my_canvas.yview)
+            my_scrollbar = tkinter.Scrollbar(main_frame, orient=tkinter.VERTICAL, command=my_canvas.yview, bg='#f2f2f2')
             my_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
 
             my_canvas.configure(yscrollcommand=my_scrollbar.set)
             my_canvas.bind('<Configure>', lambda e: my_canvas.configure(scrollregion=my_canvas.bbox('all')))
 
-            second_frame = customtkinter.CTkFrame(my_canvas)
+            second_frame = customtkinter.CTkFrame(my_canvas, bg='#f2f2f2')
 
             my_canvas.create_window((0, 0), window=second_frame, anchor='nw')
             # Show table
@@ -269,7 +269,7 @@ class DataWindow:
                     rng_row = rng_row + number_max + 1
                     customtkinter.CTkLabel(second_frame, text='Диапазон ' + rng[1]).grid(row=rng_row + 1, column=0,
                                                                                          columnspan=6)
-                    customtkinter.CTkButton(second_frame, text='Удалить диапазон',
+                    customtkinter.CTkButton(second_frame, pady=5, text='Удалить диапазон', bg='#e3e3e3', borderwidth=1,
                                             command=lambda range_button=rng: self.delete_range(range_button[0])).grid(
                         row=rng_row + 1, column=7
                     )
@@ -287,13 +287,13 @@ class DataWindow:
                             )
 
                             # Update quantity button
-                            customtkinter.CTkButton(second_frame, text='Изменить количество', command=lambda prize_oid=prize[0]: self.update_quantity(
+                            customtkinter.CTkButton(second_frame, padx=5, bg='#e3e3e3', text='Изменить количество', command=lambda prize_oid=prize[0]: self.update_quantity(
                                 prize_oid=prize_oid
                             )).grid(
                                 row=rng_row + number_p + 2, column=2)
 
                             # Delete button
-                            customtkinter.CTkButton(second_frame, text='Удалить приз',
+                            customtkinter.CTkButton(second_frame, pady=5, text='Удалить приз', bg='#e3e3e3',
                                                     command=lambda prize_button=prize: self.delete_prize(
                                                         prize_button[0])).grid(
                                 row=rng_row + number_p + 2, column=3
@@ -316,7 +316,7 @@ class DataWindow:
                                                        row=rng_row + number_g + 2, column=6)
 
                             # Delete button
-                            customtkinter.CTkButton(second_frame, text='Удалить гостя',
+                            customtkinter.CTkButton(second_frame, pady=5, text='Удалить гостя', bg='#e3e3e3',
                                                     command=lambda guest_button=guest: self.delete_guest(
                                                         guest_button[0])).grid(
                                                     row=rng_row + number_g + 2, column=7)
@@ -494,10 +494,11 @@ class RandomDrawingWindow:
                 win_wnd = customtkinter.CTkToplevel()
                 win_wnd.title('Ваш приз!')
                 win_wnd.geometry('1600x1200')
+                win_wnd.config(bg='#f2f2f2')
                 font = tkinter.font.Font(family='Helvetica', size=36, weight='bold')
 
                 # Loading animation for determining the prize
-                loading_text = customtkinter.CTkLabel(win_wnd, text="Определяем приз...")
+                loading_text = customtkinter.CTkLabel(win_wnd, text_font=font, text="Определяем приз...", bg='#f2f2f2')
                 loading_text.place(anchor='center', relx=0.5, rely=0.4)
 
                 loading_bar = ttk.Progressbar(win_wnd, orient='horizontal', length=400,
