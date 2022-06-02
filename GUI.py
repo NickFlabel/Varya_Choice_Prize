@@ -432,19 +432,24 @@ class RandomDrawingWindow:
 
             clicked = tkinter.StringVar()
 
+            font = tkinter.font.Font(family='Bahnshrift SemiCondensed', size=36, weight='bold')
+
             customtkinter.CTkLabel(self.window, text="Введите ваше имя или наименование").place(
-                rely=0.2, relx=0.5, anchor='center')
+                rely=0.1, relx=0.5, anchor='center')
             guest_uid_entry = customtkinter.CTkEntry(self.window, width=200, placeholder_text='Ваше имя или наименование')
-            guest_uid_entry.place(rely=0.23, relx=0.5, anchor='center')
+            guest_uid_entry.place(rely=0.13, relx=0.5, anchor='center')
 
             clicked.set(option)
 
-            img = tkinter.PhotoImage(file='ASD.png')
-            self.img = img.subsample(3, 3)
-            winner_button = customtkinter.CTkButton(self.window, image=self.img, compound='top', height=450,
-                                                        width=600, text='Нажмите на копку чтобы получить приз!',
+            self.img = tkinter.PhotoImage(file='logo.png')
+
+            winner_button = tkinter.Button(self.window, image=self.img, compound='top', height='500px',
+                                                        width='937px', text ='', borderwidth=0, relief='raised', fg='white',
                                                         command=lambda r=clicked.get(): self.determine_winner(guest_uid=guest_uid_entry.get()))
             winner_button.place(rely=0.5, relx=0.5, anchor='center')
+
+            customtkinter.CTkLabel(self.window, text="Нажмите на кнопку чтобы получить приз!", text_font=font).place(
+                rely=0.9, relx=0.5, anchor='center')
 
         return wrapper
 
@@ -469,7 +474,15 @@ class RandomDrawingWindow:
             for i in range(300):
                 progress_bar_widget['value'] += 0.33333
                 window.update_idletasks()
-                time.sleep(0.01)
+                time.sleep(0.001)
+
+        def center_window(window):
+            window.update_idletasks()  # Add this line
+            width = window.winfo_width()
+            height = window.winfo_height()
+            x = (window.winfo_screenwidth() // 2) - (width // 2)
+            y = (window.winfo_screenheight() // 2) - (height // 2)
+            window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
 
 
         # show guest using guest_uid
@@ -477,7 +490,7 @@ class RandomDrawingWindow:
             print(guest_uid)
             guest_full = show_guest_by_uid(guest_uid=guest_uid)
             if guest_full:
-                guest = guest_full[0]
+                guest = guest_full
             else:
                 raise sqlite3.OperationalError
 
@@ -490,15 +503,25 @@ class RandomDrawingWindow:
             if prize_list:
                 # Determine the prize
                 prize = choice(prize_list)
+                # Background image
+                background_image = tkinter.PhotoImage(file='background.png')
                 # Show the winning window
                 win_wnd = customtkinter.CTkToplevel()
                 win_wnd.title('Ваш приз!')
                 win_wnd.geometry('1600x1200')
+                center_window(win_wnd)
+                # Win frame init
+
+                background_canvas = tkinter.Canvas(win_wnd, width=2000, height=2000)
+                background_canvas.create_image(0, 0, image=background_image, anchor='nw')
+                background_canvas.pack(fill='both')
+
                 win_wnd.config(bg='#f2f2f2')
-                font = tkinter.font.Font(family='Helvetica', size=36, weight='bold')
+                font = tkinter.font.Font(family='Bahnshrift SemiCondensed', size=36, weight='bold')
 
                 # Loading animation for determining the prize
-                loading_text = customtkinter.CTkLabel(win_wnd, text_font=font, text="Определяем приз...", bg='#f2f2f2')
+                loading_text = customtkinter.CTkLabel(win_wnd, text_font=font, text="Определяем приз...", bg_color='#154189',
+                                                      text_color='#ffffff')
                 loading_text.place(anchor='center', relx=0.5, rely=0.4)
 
                 loading_bar = ttk.Progressbar(win_wnd, orient='horizontal', length=400,
@@ -508,21 +531,26 @@ class RandomDrawingWindow:
                 play_animation(loading_bar, win_wnd)
 
                 loading_bar.destroy()
-
                 loading_text.destroy()
+                background_canvas.destroy()
+
+                background_canvas = tkinter.Canvas(win_wnd, width=1600, height=1200)
+                background_canvas.create_image(0, 0, image=background_image, anchor='nw')
+                background_canvas.pack(fill='both')
 
                 customtkinter.CTkLabel(win_wnd, text=('Поздравляем!'),
-                                       text_font=font).place(
+                                       text_font=font, bg_color='#154189', text_color='#ffffff').place(
                     anchor='center', rely=0.2, relx=0.5)
 
-                win_frame = tkinter.Frame(win_wnd, width=1000, height=400, bg='#f2f2f2')
+                win_frame = tkinter.Frame(win_wnd, width=800, height=200)
+
                 win_frame.place(anchor='center', rely=0.5, relx=0.5)
 
-                text = customtkinter.CTkLabel(win_frame, text=prize[4], text_font=font, bg='#f2f2f2', width=1000,
-                                              height=400, wraplength=1000)
+                text = customtkinter.CTkLabel(win_frame, text=prize[4], text_font=font, bg_color='#154189', width=1000,
+                                              height=200, wraplength=800, text_color='#ffffff')
                 text.place(anchor='center', rely=0.5, relx=0.5)
-                customtkinter.CTkButton(win_wnd, text='Назад', text_font=font, command=win_wnd.destroy).place(
-                    anchor='center', relx=0.5, rely=0.8)
+                quit_button = tkinter.Button(win_wnd, text='Назад', font=font, command=win_wnd.destroy, background='#154189')
+
 
                 # Add prize to the guest
                 update_prize_guest(guest_oid=guest[0], prize_oid=prize[0])
@@ -544,11 +572,20 @@ class RandomDrawingWindow:
     def new_window_drawing_window(self, *args, **kwargs):
         pass
 
+    def center_window(self):
+        self.window.update_idletasks()  # Add this line
+        width = self.window.winfo_width()
+        height = self.window.winfo_height()
+        x = (self.window.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.window.winfo_screenheight() // 2) - (height // 2)
+        self.window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
     def __call__(self):
         self.window = customtkinter.CTkToplevel()
         self.new_window_drawing_window()
         self.window.title('Призы')
         self.window.geometry('1920x1080')
+        self.center_window()
 
 
 class PasswordWindow:
@@ -584,9 +621,18 @@ class PasswordWindow:
     def new_window(self):
         pass
 
+    def center_window(self):
+        self.window.update_idletasks()  # Add this line
+        width = self.window.winfo_width()
+        height = self.window.winfo_height()
+        x = (self.window.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.window.winfo_screenheight() // 2) - (height // 2)
+        self.window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
     def __call__(self):
         self.window = customtkinter.CTkToplevel()
         self.new_window()
+        self.center_window()
 
 
 class MainWindow:
@@ -603,7 +649,7 @@ class MainWindow:
             func(self, *args, **kwargs)
             customtkinter.CTkButton(text='Призы и диапазоны', command=password_window, width=400, height=100).place(
                 anchor='center', relx=0.5, rely=0.5)
-            customtkinter.CTkButton(text='Определение призов', command=random_drawing_window, width=400,
+            customtkinter.CTkButton(text='Получить приз!', command=random_drawing_window, width=400,
                                     height=100).place(anchor='center', relx=0.5, rely=0.2)
 
         return wrapper
@@ -612,11 +658,23 @@ class MainWindow:
     def new(self):
         pass
 
+
+    def center_window(self):
+        self.window.update_idletasks()  # Add this line
+        width = self.window.winfo_width()
+        height = self.window.winfo_height()
+        x = (self.window.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.window.winfo_screenheight() // 2) - (height // 2)
+        self.window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
+
     def __call__(self):
         self.window = customtkinter.CTk()
         self.window.title('Призы')
         self.window.geometry('1920x1080')
         self.new()
+        self.window.eval('tk::PlaceWindow . center')
+        self.center_window()
 
 
 random_drawing_window = RandomDrawingWindow()

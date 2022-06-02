@@ -1,5 +1,5 @@
 import sqlite3
-from Randomizer import balance_prizes_to_guests
+from Randomizer import balance_prizes_to_guests, uid_matcher
 
 def database_decorator(func):
     """This decorator opens, closes a connection to the database and commits the changes
@@ -114,8 +114,9 @@ def show_guest_by_uid(guest_uid, control):
 
     return: tuple - (guest_oid, name, guest_range, guest_uid, prize_oid)
     """
-    control.execute("SELECT * FROM guests WHERE guest_uid=" + str("'"+guest_uid+"'") + ' COLLATE NOCASE')
-    guest = control.fetchall()
+    control.execute("SELECT * FROM guests")
+    guests = control.fetchall()
+    guest = uid_matcher(guest_uid, guests)
     return guest
 
 

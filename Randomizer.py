@@ -53,3 +53,12 @@ def balance_prizes_to_guests(prize_list, guest_number):
         new_list[-1] -= 1
 
     return new_list
+
+
+def uid_matcher(guest_uid, guest_dataset):
+    """This function takes the guest uid that needs to be discovered and matches it to the corresponding guest
+    returning his oid
+    """
+    for guest in guest_dataset:
+        if guest[3].upper() == guest_uid.upper():
+            return guest
