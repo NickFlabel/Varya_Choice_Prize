@@ -504,6 +504,7 @@ class RandomDrawingWindow:
                 # Determine the prize
                 prize = choice(prize_list)
                 # Background image
+                global background_image
                 background_image = tkinter.PhotoImage(file='background.png')
                 # Show the winning window
                 win_wnd = customtkinter.CTkToplevel()
@@ -512,15 +513,14 @@ class RandomDrawingWindow:
                 center_window(win_wnd)
                 # Win frame init
 
-                background_canvas = tkinter.Canvas(win_wnd, width=2000, height=2000)
-                background_canvas.create_image(0, 0, image=background_image, anchor='nw')
-                background_canvas.pack(fill='both')
+                background_canvas = customtkinter.CTkLabel(win_wnd, width=1600, height=1200, image=background_image)
+                background_canvas.place(relx=1, rely=0, anchor='ne')
 
-                win_wnd.config(bg='#f2f2f2')
+                win_wnd.config(bg='#12549c')
                 font = tkinter.font.Font(family='Bahnshrift SemiCondensed', size=36, weight='bold')
 
                 # Loading animation for determining the prize
-                loading_text = customtkinter.CTkLabel(win_wnd, text_font=font, text="Определяем приз...", bg_color='#154189',
+                loading_text = customtkinter.CTkLabel(win_wnd, text_font=font, text="Определяем приз...", bg_color='#12549c',
                                                       text_color='#ffffff')
                 loading_text.place(anchor='center', relx=0.5, rely=0.4)
 
@@ -530,26 +530,31 @@ class RandomDrawingWindow:
 
                 play_animation(loading_bar, win_wnd)
 
-                loading_bar.destroy()
-                loading_text.destroy()
-                background_canvas.destroy()
+                win_wnd.destroy()
 
-                background_canvas = tkinter.Canvas(win_wnd, width=1600, height=1200)
-                background_canvas.create_image(0, 0, image=background_image, anchor='nw')
-                background_canvas.pack(fill='both')
+                win_wnd = tkinter.Toplevel()
+                win_wnd.title('Ваш приз!')
+                win_wnd.geometry('1600x1200')
+                center_window(win_wnd)
 
-                customtkinter.CTkLabel(win_wnd, text=('Поздравляем!'),
-                                       text_font=font, bg_color='#154189', text_color='#ffffff').place(
+                background_canvas = tkinter.Label(win_wnd, width=1600, height=1200, image=background_image)
+                background_canvas.place(relx=1, rely=0, anchor='ne')
+
+
+                tkinter.Label(win_wnd, text=('Поздравляем!'),
+                                       font=font, bg='#12549c', fg='#ffffff').place(
                     anchor='center', rely=0.2, relx=0.5)
 
                 win_frame = tkinter.Frame(win_wnd, width=800, height=200)
 
                 win_frame.place(anchor='center', rely=0.5, relx=0.5)
 
-                text = customtkinter.CTkLabel(win_frame, text=prize[4], text_font=font, bg_color='#154189', width=1000,
-                                              height=200, wraplength=800, text_color='#ffffff')
+                text = tkinter.Label(win_frame, text=prize[4], font=font, bg='#12549c', width=800,
+                                              height=10, wraplength=800, fg='#ffffff')
                 text.place(anchor='center', rely=0.5, relx=0.5)
                 quit_button = tkinter.Button(win_wnd, text='Назад', font=font, command=win_wnd.destroy, background='#154189')
+                quit_button.place(anchor='center', rely=0.9, relx=0.5)
+                win_wnd.update_idletasks()
 
 
                 # Add prize to the guest
@@ -561,7 +566,7 @@ class RandomDrawingWindow:
                 font = tkinter.font.Font(family='Helvetica', size=36, weight='bold')
                 customtkinter.CTkLabel(self.window, text=('Для этого диапазона нет призов!'), text_font=font).place(
                     anchor='center',
-                    rely=0.15, relx=0.5)
+                    rely=0.05, relx=0.5)
         except sqlite3.OperationalError:
             customtkinter.CTkLabel(self.window, text="К сожалению, такое имя не найдено").place(
                 rely=0.15, relx=0.5, anchor='center'
