@@ -435,16 +435,16 @@ class RandomDrawingWindow:
             font = tkinter.font.Font(family='Bahnshrift SemiCondensed', size=36, weight='bold')
 
             customtkinter.CTkLabel(self.window, text="Введите ваше имя или наименование").place(
-                rely=0.1, relx=0.5, anchor='center')
+                rely=0.28, relx=0.5, anchor='center')
             guest_uid_entry = customtkinter.CTkEntry(self.window, width=200, placeholder_text='Ваше имя или наименование')
-            guest_uid_entry.place(rely=0.13, relx=0.5, anchor='center')
+            guest_uid_entry.place(rely=0.25, relx=0.5, anchor='center')
 
             clicked.set(option)
 
             self.img = tkinter.PhotoImage(file='logo.png')
 
-            winner_button = tkinter.Button(self.window, image=self.img, compound='top', height='500px',
-                                                        width='937px', text ='', borderwidth=0, relief='raised', fg='white',
+            winner_button = tkinter.Button(self.window, image=self.img, compound='top', height='320px',
+                                                        width='600px', text ='', borderwidth=0, relief='raised', fg='white',
                                                         command=lambda r=clicked.get(): self.determine_winner(guest_uid=guest_uid_entry.get()))
             winner_button.place(rely=0.5, relx=0.5, anchor='center')
 
@@ -495,7 +495,7 @@ class RandomDrawingWindow:
                 raise sqlite3.OperationalError
 
             if is_guest_the_winner(guest[0]):
-                customtkinter.CTkLabel(self.window, text='У вас уже есть подарок!').place(rely=0.15, relx=0.5, anchor='center')
+                customtkinter.CTkLabel(self.window, text='У вас уже есть подарок!').place(rely=0.20, relx=0.5, anchor='center')
                 return
 
             guest_range = guest[2]
@@ -566,10 +566,10 @@ class RandomDrawingWindow:
                 font = tkinter.font.Font(family='Helvetica', size=36, weight='bold')
                 customtkinter.CTkLabel(self.window, text=('Для этого диапазона нет призов!'), text_font=font).place(
                     anchor='center',
-                    rely=0.05, relx=0.5)
+                    rely=0.20, relx=0.5)
         except sqlite3.OperationalError:
             customtkinter.CTkLabel(self.window, text="К сожалению, такое имя не найдено").place(
-                rely=0.15, relx=0.5, anchor='center'
+                rely=0.20, relx=0.5, anchor='center'
             )
 
 
